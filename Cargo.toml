@@ -7,8 +7,9 @@ edition = "2018"
 [dependencies]
 calamine = "0.15"
 chrono = "0.4"
+colored = "1.8"
 config = { version= "0.9", features = ['ini'] }
-error-chain = "0.12"
+failure = "0.1"
 lettre = "0.9"
 lettre_email = "0.9"
 native-tls = "0.2"

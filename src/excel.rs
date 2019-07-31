@@ -1,6 +1,9 @@
 use calamine::{DataType, Range, RangeDeserializerBuilder, Reader, Xlsx};
 use chrono::{Local, NaiveDate};
-use rustyreminder::errors::*;
+use failure::{format_err, Fallible, ResultExt};
+use rustyreminder::errors::AppError;
+use std::fs::File;
+use std::io::BufReader;
 use time::Duration;
 
 #[derive(Debug)]
@@ -10,9 +13,16 @@ pub struct Entry {
     pub message: String,
 }
 
-pub fn process_workbook() -> Result<Vec<Entry>> {
-    let range = open_workbook()?;
-    let data = deserialize(range)?;
+type XlsxFile = Fallible<Xlsx<BufReader<File>>>;
+type SheetRange = Fallible<Range<DataType>>;
+type Rows = Fallible<Vec<(f64, String)>>;
+type Entries = Fallible<Vec<Entry>>;
+
+pub fn process_workbook() -> Entries {
+    let path = "reminders.xlsx";
+    let workbook = open_workbook(path).context(AppError::ExcelLoad { path })?;
+    let range = get_range(workbook).context(AppError::ExcelDeser)?;
+    let data = deserialize(range).context(AppError::ExcelDeser)?;
 
     let today = Local::today().naive_local();
     let base_date = NaiveDate::from_ymd(1900, 1, 1);
@@ -43,26 +53,27 @@ pub fn process_workbook() -> Result<Vec<Entry>> {
     Ok(todays_entries)
 }
 
-fn open_workbook() -> Result<Range<DataType>> {
-    let path = "reminders.xlsx";
-    let mut workbook: Xlsx<_> =
-        calamine::open_workbook(path).map_err(|_| ErrorKind::ExcelLoad(path.into()))?;
-    let range = workbook
-        .worksheet_range("Sheet1")
-        .ok_or(ErrorKind::ExcelDeser)?
-        .map_err(|_| ErrorKind::ExcelDeser)?;
-    Ok(range)
+fn open_workbook(path: &str) -> XlsxFile {
+    let workbook: Xlsx<_> = calamine::open_workbook(path)?;
+    Ok(workbook)
 }
 
-fn deserialize(range: Range<DataType>) -> Result<Vec<(f64, String)>> {
+fn get_range(mut workbook: Xlsx<BufReader<File>>) -> SheetRange {
+    let sheet = "Sheet1";
+    let range = workbook
+        .worksheet_range(&sheet)
+        .ok_or(AppError::ExcelNoSheet { sheet });
+    Ok(range??)
+}
+
+fn deserialize(range: Range<DataType>) -> Rows {
     let iter = RangeDeserializerBuilder::new()
         .has_headers(true)
-        .from_range(&range)
-        .map_err(|_| ErrorKind::ExcelDeser)?;
+        .from_range(&range)?;
 
     let mut data: Vec<(f64, String)> = Vec::new();
-    for item in iter {
-        let _data: (f64, String) = item.map_err(|_| ErrorKind::ExcelDeser)?;
+    for (i, item) in iter.enumerate() {
+        let _data: (f64, String) = item.context(format_err!("Incorrect value on row {}", i + 2))?;
         data.push(_data);
     }
 

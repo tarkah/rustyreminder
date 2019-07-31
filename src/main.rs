@@ -5,37 +5,46 @@ mod email;
 mod errors;
 mod excel;
 
+use colored::*;
+use failure::{format_err, Error, ResultExt};
 use rustyreminder::config::get_config;
 use rustyreminder::email::send_emails;
-use rustyreminder::errors::*;
 use rustyreminder::excel::process_workbook;
+use std::io::Write;
 
 fn main() {
-    if let Err(ref e) = run() {
-        use std::io::Write;
-        let stderr = &mut ::std::io::stderr();
-        let errmsg = "Error writing to stderr";
-
-        writeln!(stderr).expect(errmsg);
-        writeln!(stderr, "ERROR: {}", e).expect(errmsg);
-
-        for e in e.iter().skip(1) {
-            writeln!(stderr, "Caused by: {}", e).expect(errmsg);
-        }
-
-        // The backtrace is not always generated. Try to run this example
-        // with `RUST_BACKTRACE=1`.
-        if let Some(backtrace) = e.backtrace() {
-            writeln!(stderr, "Backtrace: {:?}", backtrace).expect(errmsg);
-        }
-
-        ::std::process::exit(1);
+    if let Err(error) = run() {
+        print_error(error)
     }
 }
 
-fn run() -> Result<()> {
+fn run() -> Result<(), failure::Error> {
     let config = get_config()?;
     let entries = process_workbook()?;
-    send_emails(config.smtp, entries)?;
+    if !entries.is_empty() {
+        send_emails(config.smtp, entries).context(format_err!("Failed to send email(s)."))?;
+    } else {
+        println!("No entries to email...");
+    }
     Ok(())
+}
+
+fn print_error(error: Error) {
+    let stderr = &mut ::std::io::stderr();
+    let errmsg = "Error writing to stderr";
+
+    let error_colored = "ERROR".red();
+    let cause_by_colored = "Caused by".yellow();
+
+    writeln!(stderr, "\n{}: {}\n", error_colored, error).expect(errmsg);
+
+    for cause in error.iter_causes() {
+        writeln!(stderr, "{}: {}", cause_by_colored, cause).expect(errmsg);
+    }
+
+    if error.backtrace().to_string() != "" {
+        writeln!(stderr, "Backtrace: {}", error.backtrace()).expect(errmsg);
+    }
+
+    ::std::process::exit(1);
 }
