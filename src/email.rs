@@ -1,11 +1,14 @@
 use failure::Error;
-use lettre::smtp::authentication::{Credentials, Mechanism};
-use lettre::smtp::ConnectionReuseParameters;
-use lettre::{ClientSecurity, ClientTlsParameters, SmtpClient, Transport};
+use lettre::{
+    smtp::{
+        authentication::{Credentials, Mechanism},
+        ConnectionReuseParameters,
+    },
+    ClientSecurity, ClientTlsParameters, SmtpClient, Transport,
+};
 use lettre_email::Email;
 use native_tls::TlsConnector;
-use rustyreminder::config::Smtp;
-use rustyreminder::excel::Entry;
+use rustyreminder::{config::Smtp, excel::Entry};
 
 pub fn send_emails(config: Smtp, entries: Vec<Entry>) -> Result<(), Error> {
     let from = &config.username;

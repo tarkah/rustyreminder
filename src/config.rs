@@ -1,5 +1,4 @@
-use failure::Error;
-use failure::ResultExt;
+use failure::{Error, ResultExt};
 use rustyreminder::errors::AppError;
 use serde::{Deserialize, Serialize};
 

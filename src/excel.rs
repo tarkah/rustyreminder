@@ -2,8 +2,7 @@ use calamine::{DataType, Range, RangeDeserializerBuilder, Reader, Xlsx};
 use chrono::{Local, NaiveDate};
 use failure::{format_err, Fallible, ResultExt};
 use rustyreminder::errors::AppError;
-use std::fs::File;
-use std::io::BufReader;
+use std::{fs::File, io::BufReader};
 use time::Duration;
 
 const FILE_PATH: &str = "reminders.xlsx";

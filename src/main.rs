@@ -7,9 +7,7 @@ mod excel;
 
 use colored::*;
 use failure::{format_err, Error, ResultExt};
-use rustyreminder::config::get_config;
-use rustyreminder::email::send_emails;
-use rustyreminder::excel::process_workbook;
+use rustyreminder::{config::get_config, email::send_emails, excel::process_workbook};
 use std::io::Write;
 
 fn main() {
