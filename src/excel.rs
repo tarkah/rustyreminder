@@ -6,6 +6,9 @@ use std::fs::File;
 use std::io::BufReader;
 use time::Duration;
 
+const FILE_PATH: &str = "reminders.xlsx";
+const SHEET_NAME: &str = "Sheet1";
+
 #[derive(Debug)]
 pub struct Entry {
     pub date: NaiveDate,
@@ -19,8 +22,7 @@ type Rows = Fallible<Vec<(f64, String)>>;
 type Entries = Fallible<Vec<Entry>>;
 
 pub fn process_workbook() -> Entries {
-    let path = "reminders.xlsx";
-    let workbook = open_workbook(path).context(AppError::ExcelLoad { path })?;
+    let workbook = open_workbook(FILE_PATH).context(AppError::ExcelLoad { path: FILE_PATH })?;
     let range = get_range(workbook).context(AppError::ExcelDeser)?;
     let data = deserialize(range).context(AppError::ExcelDeser)?;
 
@@ -59,10 +61,9 @@ fn open_workbook(path: &str) -> XlsxFile {
 }
 
 fn get_range(mut workbook: Xlsx<BufReader<File>>) -> SheetRange {
-    let sheet = "Sheet1";
     let range = workbook
-        .worksheet_range(&sheet)
-        .ok_or(AppError::ExcelNoSheet { sheet });
+        .worksheet_range(&SHEET_NAME)
+        .ok_or(AppError::ExcelNoSheet { sheet: SHEET_NAME });
     Ok(range??)
 }
 
